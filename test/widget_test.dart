@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:planbook_app/app.dart';
+import 'package:ciq_planner/app.dart';
 
 void main() {
   testWidgets('home page shows the main entry points', (tester) async {
