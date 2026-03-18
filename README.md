@@ -114,6 +114,4 @@ flutter build ios
 - 趋势图表（7/30 日完成率、积分波动）
 - 云同步（可选）
 
-## License
 
-暂未添加 License。开源前建议补充 `LICENSE` 文件并明确使用协议。
