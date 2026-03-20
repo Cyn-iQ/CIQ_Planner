@@ -64,6 +64,24 @@ class _DailyPageState extends State<DailyPage> {
     });
   }
 
+  int get _dailyTaskLimit {
+    final current = _settings.shortTaskCurrentCapacity;
+    return current < AppSettings.maxShortTaskCapacity
+        ? current
+        : AppSettings.maxShortTaskCapacity;
+  }
+
+  int get _fixedTaskLimit {
+    final current = _settings.fixedTaskCurrentCapacity;
+    return current < AppSettings.maxFixedTaskCapacity
+        ? current
+        : AppSettings.maxFixedTaskCapacity;
+  }
+
+  bool _canEditTask(Task task) {
+    return task.type == TaskType.daily || task.type == TaskType.fixed;
+  }
+
   Future<void> _toggleTask(String id) async {
     final index = _tasks.indexWhere((task) => task.id == id);
     if (index == -1) return;
@@ -105,6 +123,88 @@ class _DailyPageState extends State<DailyPage> {
     }
 
     await _reloadTasks();
+  }
+
+  void _showEditTaskDialog(Task task) {
+    if (!_canEditTask(task)) return;
+
+    final titleController = TextEditingController(text: task.title);
+    final descriptionController = TextEditingController(text: task.description);
+    final pointsController = TextEditingController(text: task.points.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('编辑任务'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: '任务名称',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: '任务描述',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pointsController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '积分',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleController.text.trim();
+                final description = descriptionController.text.trim();
+                final points = int.tryParse(pointsController.text.trim()) ?? 0;
+
+                if (title.isEmpty) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('任务名称不能为空')),
+                  );
+                  return;
+                }
+
+                await DailyTaskRepository.updateTask(
+                  task.copyWith(
+                    title: title,
+                    description: description.isEmpty ? '无描述' : description,
+                    points: points,
+                  ),
+                );
+
+                await _reloadTasks();
+
+                if (!mounted) return;
+                Navigator.pop(context);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showAddTaskDialog() {
@@ -203,11 +303,11 @@ class _DailyPageState extends State<DailyPage> {
                         .length;
 
                     if (selectedType == TaskType.daily &&
-                        dailyCount >= _settings.shortTaskCurrentCapacity) {
+                        dailyCount >= _dailyTaskLimit) {
                       ScaffoldMessenger.of(this.context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            '短期任务已达到当前容量上限：${_settings.shortTaskCurrentCapacity}',
+                            '短期任务已达到上限：$_dailyTaskLimit（系统最高 ${AppSettings.maxShortTaskCapacity}）',
                           ),
                         ),
                       );
@@ -215,11 +315,11 @@ class _DailyPageState extends State<DailyPage> {
                     }
 
                     if (selectedType == TaskType.fixed &&
-                        fixedCount >= _settings.fixedTaskCurrentCapacity) {
+                        fixedCount >= _fixedTaskLimit) {
                       ScaffoldMessenger.of(this.context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            '固定任务已达到当前容量上限：${_settings.fixedTaskCurrentCapacity}',
+                            '固定任务已达到上限：$_fixedTaskLimit（系统最高 ${AppSettings.maxFixedTaskCapacity}）',
                           ),
                         ),
                       );
@@ -372,10 +472,10 @@ class _DailyPageState extends State<DailyPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                '短期：$dailyCount / ${_settings.shortTaskCurrentCapacity}',
+                                '短期：$dailyCount / $_dailyTaskLimit',
                               ),
                               Text(
-                                '固定：$fixedCount / ${_settings.fixedTaskCurrentCapacity}',
+                                '固定：$fixedCount / $_fixedTaskLimit',
                               ),
                             ],
                           ),
@@ -408,9 +508,21 @@ class _DailyPageState extends State<DailyPage> {
                                   subtitle: Text(
                                     '${_typeLabel(task.type)} · ${task.description} · ${task.points} 分',
                                   ),
-                                  trailing: Checkbox(
-                                    value: task.isCompleted,
-                                    onChanged: (_) => _toggleTask(task.id),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_canEditTask(task))
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined),
+                                          tooltip: '编辑任务',
+                                          onPressed: () =>
+                                              _showEditTaskDialog(task),
+                                        ),
+                                      Checkbox(
+                                        value: task.isCompleted,
+                                        onChanged: (_) => _toggleTask(task.id),
+                                      ),
+                                    ],
                                   ),
                                   onTap: () => _toggleTask(task.id),
                                   onLongPress: () => _showDeleteTaskDialog(task),

@@ -1,4 +1,7 @@
 class AppSettings {
+  static const int maxShortTaskCapacity = 10;
+  static const int maxFixedTaskCapacity = 15;
+
   final String dayStartTime;
   final int shortTaskBaseCapacity;
   final int fixedTaskBaseCapacity;

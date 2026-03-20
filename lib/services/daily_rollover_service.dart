@@ -188,6 +188,7 @@ class DailyRolloverService {
       currentCapacity: settings.shortTaskCurrentCapacity,
       totalCount: dailyStats['totalCount'] ?? 0,
       completedCount: dailyStats['completedCount'] ?? 0,
+      maxCapacity: SettingsRepository.maxShortTaskCapacity,
     );
 
     final newFixedCapacity = _calculateNextCapacity(
@@ -195,6 +196,7 @@ class DailyRolloverService {
       currentCapacity: settings.fixedTaskCurrentCapacity,
       totalCount: fixedStats['totalCount'] ?? 0,
       completedCount: fixedStats['completedCount'] ?? 0,
+      maxCapacity: SettingsRepository.maxFixedTaskCapacity,
     );
 
     final updatedSettings = settings.copyWith(
@@ -210,14 +212,13 @@ class DailyRolloverService {
     required int currentCapacity,
     required int totalCount,
     required int completedCount,
+    required int maxCapacity,
   }) {
-    double completionRate;
-
     if (totalCount == 0) {
-      completionRate = 1.0;
-    } else {
-      completionRate = completedCount / totalCount;
+      return currentCapacity.clamp(baseCapacity, maxCapacity).toInt();
     }
+
+    final completionRate = completedCount / totalCount;
 
     int nextCapacity;
     if (completionRate >= 0.8) {
@@ -228,6 +229,10 @@ class DailyRolloverService {
 
     if (nextCapacity < baseCapacity) {
       nextCapacity = baseCapacity;
+    }
+
+    if (nextCapacity > maxCapacity) {
+      nextCapacity = maxCapacity;
     }
 
     return nextCapacity;

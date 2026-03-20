@@ -56,11 +56,11 @@ class _FixedPlanPageState extends State<FixedPlanPage> {
   }
 
   Future<void> _showAddTemplateDialog() async {
-    if (_templates.length >= _settings.fixedTaskCurrentCapacity) {
+    if (_templates.length >= AppSettings.maxFixedTaskCapacity) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '当前固定任务容量为 ${_settings.fixedTaskCurrentCapacity}，已达到自动带入上限',
+            '固定任务模板最多 ${AppSettings.maxFixedTaskCapacity} 个',
           ),
         ),
       );
@@ -300,7 +300,7 @@ class _FixedPlanPageState extends State<FixedPlanPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                '模板 ${_templates.length} 个',
+                                '模板 ${_templates.length} / ${AppSettings.maxFixedTaskCapacity}',
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               Text(
@@ -358,6 +358,23 @@ class _FixedPlanPageState extends State<FixedPlanPage> {
                                         ),
                                       ],
                                     ),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        onPressed: () =>
+                                            _showEditTemplateDialog(template),
+                                        icon: const Icon(Icons.edit_outlined),
+                                        tooltip: '编辑模板',
+                                      ),
+                                      IconButton(
+                                        onPressed: () =>
+                                            _showDeleteTemplateDialog(template),
+                                        icon: const Icon(Icons.delete_outline),
+                                        tooltip: '删除模板',
+                                      ),
+                                    ],
                                   ),
                                   onTap: () => _showEditTemplateDialog(template),
                                   onLongPress: () =>
